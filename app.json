@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "Porra2.0",
+    "slug": "Porra2.0",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  },
+  "name": "Porra2.0"
+}
