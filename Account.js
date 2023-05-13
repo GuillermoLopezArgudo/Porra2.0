@@ -7,7 +7,7 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { useNavigation } from "@react-navigation/native";
-
+//Pantalla para loguearse o registrarse
 
 const Account = () => {
   const [email, setEmail] = useState('');
@@ -16,6 +16,7 @@ const Account = () => {
 
   const navigation = useNavigation();
 
+  //Funcion handleLogin: Esta se dedica comporbar si el usuario esta registrado en BBDD (firebase)
   const handleLogin = async () => {
     try {
       await signInWithEmailAndPassword(auth,email, password);
@@ -27,7 +28,7 @@ const Account = () => {
       setError('Error de inicio de sesión');
     }
   };
-
+//Funcion handleDingUp: Esta se dedica a registrar en la BBDD (Authentication firebase)
   const handleSignUp = async () => {
     try {
       const result = await createUserWithEmailAndPassword(auth,email, password);

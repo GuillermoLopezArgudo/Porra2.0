@@ -11,9 +11,21 @@ import {
 } from "react-native";
 import firebase from "./firebase";
 import { db, auth } from "./firebase";
-import { setDoc, doc, collection, addDoc } from "firebase/firestore";
+import { setDoc, doc, collection, getDoc } from "firebase/firestore";
 
 const MatchResults = () => {
+  /*Variales codigo:
+  loading:
+  ValenciaMatch: Donde se almacena el partido que disputa el equipo Valencia
+  realMadridMatch: Donde se almacena el partido que disputa el equipo Real Madrid
+  barcelinaMatch: Donde se almacena el partido que disputa el equipo Barcelona
+  valenciaResult: Donde se almacena el resultado puesto del partido del Valencia
+  realMadridResult: Donde se almacena el resultado puesto del partido del Real Madrid
+  barcelonaResult: Donde se almacena el resultado puesto del partido del Barcelona
+  jornada: Donde se almacena la jornada del partido en la que esta actualmente
+  showBarcelona: Booleana para ocultar el match del Barcelona
+  showRealMadrid: Booleana para mostrar el match del Real Madrid
+  */
   const [loading, setLoading] = useState(true);
   const [valenciaMatch, setValenciaMatch] = useState({});
   const [realMadridMatch, setRealMadridMatch] = useState({});
@@ -21,16 +33,19 @@ const MatchResults = () => {
   const [valenciaResult, setValenciaResult] = useState("");
   const [realMadridResult, setRealMadridResult] = useState("");
   const [barcelonaResult, setBarcelonaResult] = useState({});
-  const [jornada, setJornada] = useState({});
+  const [jornada, setJornada] = useState(null);
   const [showBarcelona, setShowBarcelona] = useState(false);
   const [showRealMadrid, setShowRealMadrid] = useState(true);
 
+  //Partidos y jornadas traidas de la api (https://api.football-data.org/v2/)
   const API_KEY = "c127303480ab4eec989ae6e83f52ab57";
   const valenciaURL = `https://api.football-data.org/v2/teams/95/matches?status=SCHEDULED&competitions=2014`;
   const realMadridURL = `https://api.football-data.org/v2/teams/86/matches?status=SCHEDULED&competitions=2014`;
   const barcelonaURL = `https://api.football-data.org/v2/teams/81/matches?status=SCHEDULED&competitions=2014`;
   const jornadaURL = `https://api.football-data.org/v2/competitions/2014/matches?matchday=38`;
 
+  //Funcion useEffect funcion que trae de la API los datos necesarios para mostrarlos y tiene un condicional 
+  //el cual si juega Valencia vs Madrid se muestra el partido del Barcelona y se oculta el partido del Real Madrid
   useEffect(() => {
     Promise.all([
       fetch(valenciaURL, {
@@ -76,13 +91,16 @@ const MatchResults = () => {
 
         setRealMadridMatch(realMadridJson.matches[0]);
         setBarcelonaMatch(barcelonaJson.matches[0])
-        setJornada(jornadaJson);
+        setJornada(jornadaJson.matches[0].season);
         setLoading(false);
       })
       .catch((error) => console.error(error))
       .finally(() => setLoading(false));
   }, []);
-
+/*Funcion handleSaveResults:
+Esta funcion se dedica a subir los datos a la BBDD (Firebase)
+Los sube de la forma (Coleccion:Apuestas),(Documento:Jornada),(Coleccion:Partido),(Documento:IdUser),(Campos: User, Resultado)
+*/
   const handleSaveResults = async (match, result, jornada) => {
 
     const email = auth.currentUser?.email;
@@ -96,9 +114,16 @@ const MatchResults = () => {
   
     const jornadaDocRef = doc(db, "Apuestas",`Jornada-${jornada.currentMatchday}`)
     const Partido= collection(jornadaDocRef,`${match.homeTeam.name}-${match.awayTeam.name}`)
+    const userApuestaRef = doc(Partido, auth.currentUser.uid);
     try {
-      await setDoc(doc(Partido,`${auth.currentUser.uid}`),apuesta);
+      const partidoDoc = await getDoc(userApuestaRef);
+      if(partidoDoc.exists()){
+        alert("Ya has puesto el resultado");
+      }else{
+      
+      await setDoc(doc(Partido,`${auth.currentUser.uid}`),apuesta,{merge: true});
       alert("Resultado guardado exitosamente");
+    }
     } catch (error) {
       alert(`Hubo un error al guardar el resultado: ${error.message}`);
     }

@@ -9,7 +9,10 @@ import TabNavigator from "./TabNavigator";
 
 
 const Stack = createStackNavigator();
-
+//Navegacion  Stack entre tres pantallas 
+//(Account: Donde se inicia sesion)
+//(MatchResults: Donde se pone los resultados de los partiodos)
+//(TabNavigator: Donde se hace una navegación Tab entre diferentes pantallas)
 export default function App() {
   return (
 <NavigationContainer>

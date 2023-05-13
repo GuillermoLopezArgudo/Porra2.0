@@ -9,7 +9,7 @@ import MatchResults from "./MatchResults";
 import { MaterialCommunityIcons } from '@expo/vector-icons'; 
 
 const Tab = createBottomTabNavigator();
-
+//Navegacion Tab para navegar entre las distintas pantallas (Usuario,Ajustes,Apuesta)
 const TabNavigator = () => {
   return (
       <Tab.Navigator
