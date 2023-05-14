@@ -22,6 +22,7 @@ const User = () => {
   );
   const [apuestas, setApuestas] = useState([]);
   const [apuestas2, setApuestas2] = useState([]);
+  const [equipoModificado, setEquipoModificado] = useState("Real Madrid CF");
 
   useEffect(() => {
     fetch(`https://api.football-data.org/v2/competitions/2014/matches`, {
@@ -30,6 +31,8 @@ const User = () => {
       .then((response) => response.json())
       .then((data) => setJornadas(data.matches))
       .catch((error) => console.error(error));
+
+
   }, []);
 
   const handleSignOut = () => {
@@ -37,6 +40,7 @@ const User = () => {
       .then(() => navigation.replace("Account"))
       .catch((error) => alert(error.message));
   };
+  
 
   const handleJornadaPress = (jornada) => {
     setJornadaActual(jornada);
@@ -47,12 +51,30 @@ const User = () => {
         (partido.homeTeam.name === "Valencia CF" ||
           partido.awayTeam.name === "Valencia CF")
     );
-
+ 
+    if (
+      (filteredMatch &&
+        ((filteredMatch.homeTeam.name === "Valencia CF" &&
+          filteredMatch.awayTeam.name === "Real Madrid CF") ||
+          (filteredMatch.homeTeam.name === "Real Madrid CF" &&
+          filteredMatch.awayTeam.name === "Valencia CF"))) ||
+      (filteredMatch2 &&
+        ((filteredMatch2.homeTeam.name === "Valencia CF" &&
+          filteredMatch2.awayTeam.name === "Real Madrid CF") ||
+          (filteredMatch2.homeTeam.name === "Real Madrid CF" &&
+          filteredMatch2.awayTeam.name === "Valencia CF")))
+    ) {
+      setEquipoModificado("FC Barcelona");
+    } else {
+      setEquipoModificado("Real Madrid CF");
+    }
+    
+    //Recogida de resultado BBDD
     const filteredMatch2 = jornadas.find(
       (partido) =>
         partido.matchday === jornada &&
-        (partido.homeTeam.name.includes("Real Madrid") ||
-          partido.awayTeam.name.includes("Real Madrid"))
+        (partido.homeTeam.name.includes(equipoModificado) ||
+          partido.awayTeam.name.includes(equipoModificado))
     );
 
     const partidoRef = collection(
@@ -95,12 +117,12 @@ const User = () => {
       (partido.homeTeam.name === "Valencia CF" ||
         partido.awayTeam.name === "Valencia CF")
   );
-
+//Muestra partidos por pantalla
   const filteredMatches2 = jornadas.filter(
     (partido) =>
       partido.matchday === jornadaActual &&
-      (partido.homeTeam.name.includes("Real Madrid") ||
-        partido.awayTeam.name.includes("Real Madrid"))
+      (partido.homeTeam.name.includes(equipoModificado) ||
+        partido.awayTeam.name.includes(equipoModificado))
   );
 
   return (

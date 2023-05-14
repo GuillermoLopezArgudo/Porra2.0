@@ -7,6 +7,8 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { useNavigation } from "@react-navigation/native";
+
+
 //Pantalla para loguearse o registrarse
 
 const Account = () => {
