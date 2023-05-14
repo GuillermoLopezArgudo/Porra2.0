@@ -5,7 +5,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import User from "./User";
 import Settings from "./Settings";
 import MatchResults from "./MatchResults";
-
+import Match from "./Match";
 import { MaterialCommunityIcons } from '@expo/vector-icons'; 
 
 const Tab = createBottomTabNavigator();
@@ -35,7 +35,7 @@ const TabNavigator = () => {
         <Tab.Screen name ="Usuario" component={User} />
         <Tab.Screen name ="Ajustes" component={Settings} />
         <Tab.Screen name ="Apuesta" component={MatchResults} />
-
+        <Tab.Screen name ="Porra" component={Match} />
       </Tab.Navigator>
   );
 };

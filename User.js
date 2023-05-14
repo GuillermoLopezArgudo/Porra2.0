@@ -31,8 +31,6 @@ const User = () => {
       .then((response) => response.json())
       .then((data) => setJornadas(data.matches))
       .catch((error) => console.error(error));
-
-
   }, []);
 
   const handleSignOut = () => {
@@ -40,7 +38,6 @@ const User = () => {
       .then(() => navigation.replace("Account"))
       .catch((error) => alert(error.message));
   };
-  
 
   const handleJornadaPress = (jornada) => {
     setJornadaActual(jornada);
@@ -51,24 +48,24 @@ const User = () => {
         (partido.homeTeam.name === "Valencia CF" ||
           partido.awayTeam.name === "Valencia CF")
     );
- 
+
     if (
       (filteredMatch &&
         ((filteredMatch.homeTeam.name === "Valencia CF" &&
           filteredMatch.awayTeam.name === "Real Madrid CF") ||
           (filteredMatch.homeTeam.name === "Real Madrid CF" &&
-          filteredMatch.awayTeam.name === "Valencia CF"))) ||
+            filteredMatch.awayTeam.name === "Valencia CF"))) ||
       (filteredMatch2 &&
         ((filteredMatch2.homeTeam.name === "Valencia CF" &&
           filteredMatch2.awayTeam.name === "Real Madrid CF") ||
           (filteredMatch2.homeTeam.name === "Real Madrid CF" &&
-          filteredMatch2.awayTeam.name === "Valencia CF")))
+            filteredMatch2.awayTeam.name === "Valencia CF")))
     ) {
       setEquipoModificado("FC Barcelona");
     } else {
       setEquipoModificado("Real Madrid CF");
     }
-    
+
     //Recogida de resultado BBDD
     const filteredMatch2 = jornadas.find(
       (partido) =>
@@ -117,7 +114,7 @@ const User = () => {
       (partido.homeTeam.name === "Valencia CF" ||
         partido.awayTeam.name === "Valencia CF")
   );
-//Muestra partidos por pantalla
+  //Muestra partidos por pantalla
   const filteredMatches2 = jornadas.filter(
     (partido) =>
       partido.matchday === jornadaActual &&
@@ -136,10 +133,6 @@ const User = () => {
       <Text style={styles.title}>
         ¡Bienvenido/a, {auth.currentUser?.email.split("@")[0]}!
       </Text>
-
-      <TouchableOpacity onPress={handleSignOut} style={styles.button}>
-        <Text style={styles.buttonText}>Cerrar Sesión</Text>
-      </TouchableOpacity>
 
       <FlatList
         data={jornadaNumbers}
@@ -209,13 +202,18 @@ const User = () => {
                     style={styles.list}
                   />
                 ) : (
-                  <Text style={styles.infoText}>No se tiene información almacenada</Text>
+                  <Text style={styles.infoText}>
+                    No se tiene información almacenada
+                  </Text>
                 )}
               </View>
             )}
           </View>
         )}
       />
+      <TouchableOpacity onPress={handleSignOut} style={styles.button}>
+        <Text style={styles.buttonText}>Cerrar Sesión</Text>
+      </TouchableOpacity>
     </View>
   );
 };

@@ -84,9 +84,11 @@ const MatchResults = () => {
         ) {
           setValenciaMatch(valenciaJson.matches[1]);
           setShowRealMadrid(true);
+          setShowBarcelona(false);
         } else {
           setValenciaMatch(valenciaJson.matches[0]);
           setShowBarcelona(false);
+          setShowRealMadrid(true)
         }
 
         setRealMadridMatch(realMadridJson.matches[0]);
@@ -106,6 +108,7 @@ Los sube de la forma (Coleccion:Apuestas),(Documento:Jornada),(Coleccion:Partido
     const email = auth.currentUser?.email;
     const username = email?.split("@")[0];
 
+if(valenciaMatch.matchday === realMadridMatch.matchday && valenciaMatch.matchday === barcelonaMatch.matchday){
     const apuesta = {
       resultado: result,
       Usuario: username,
@@ -127,6 +130,9 @@ Los sube de la forma (Coleccion:Apuestas),(Documento:Jornada),(Coleccion:Partido
     } catch (error) {
       alert(`Hubo un error al guardar el resultado: ${error.message}`);
     }
+  }else{
+    alert("Aún hay un partido cursando en otra jornada.");
+  }
   };
   return (
     <ScrollView>
