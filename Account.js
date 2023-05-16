@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect,useState } from "react";
 import {
   View,
   TextInput,
@@ -24,8 +24,25 @@ const Account = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
+  const [teams, setTeams] = useState([]);
 
   const navigation = useNavigation();
+  const API_KEY = "c127303480ab4eec989ae6e83f52ab57";
+  const URL = "https://api.football-data.org/v2/competitions/2014/teams";
+  
+  useEffect(() => {
+    fetch(URL, { headers: { "X-Auth-Token": API_KEY } })
+      .then((response) => response.json())
+      .then((data) => {
+        const teams = data.teams.map((team) => ({
+          id: team.id,
+          name: team.name,
+          logoUrl: team.crestUrl.replace(/^http:\/\//i, "https://"),
+        }));
+        setTeams(teams);
+      })
+      .catch((error) => console.error(error));
+  }, []);
 
   //Funcion handleLogin: Esta se dedica comporbar si el usuario esta registrado en BBDD (firebase)
   const handleLogin = async () => {
@@ -53,6 +70,7 @@ const Account = () => {
       const myDoc = doc(db, "Usuarios", email?.split("@")[0]);
 
       await setDoc(myDoc, { correo: auth.currentUser?.email, uid:auth.currentUser.uid });
+      navigation.replace("TabNavigator");
 
       // Código adicional para navegar a la pantalla de inicio de sesión
     } catch (error) {
@@ -60,76 +78,59 @@ const Account = () => {
     }
   };
 
-  const teams = [
-    { id: 1, name: "Almeria", logo: require("./assets/alm.png") },
-    { id: 2, name: "Atletico Club Bilbao", logo: require("./assets/ath.png") },
-    { id: 3, name: "Atletico de Madrid", logo: require("./assets/atl.png") },
-    { id: 4, name: "Futbol Club Barceolna", logo: require("./assets/bar.png") },
-    { id: 5, name: "Deportivo", logo: require("./assets/dep.png") },
-    { id: 6, name: "Español", logo: require("./assets/esp.png") },
-    { id: 7, name: "Getafe", logo: require("./assets/get.png") },
-    { id: 8, name: "Malaga", logo: require("./assets/mal.png") },
-    { id: 9, name: "Mallorca", logo: require("./assets/mall.png") },
-    { id: 10, name: "Osasuna", logo: require("./assets/osa.png") },
-    {
-      id: 11,
-      name: "Rela Racing Club Santander",
-      logo: require("./assets/rac.png"),
-    },
-    { id: 12, name: "Real Madrid", logo: require("./assets/rea.png") },
-    { id: 13, name: "Sevilla", logo: require("./assets/sev.png") },
-    { id: 14, name: "Sporting", logo: require("./assets/spo.png") },
-    { id: 15, name: "Tenerife", logo: require("./assets/ten.png") },
-    { id: 16, name: "Valencia", logo: require("./assets/val.png") },
-    { id: 17, name: "Vallalodid", logo: require("./assets/vall.png") },
-    { id: 18, name: "Villareal", logo: require("./assets/vill.png") },
-    { id: 19, name: "Xerez", logo: require("./assets/xer.png") },
-    { id: 20, name: "Zaragoza", logo: require("./assets/zar.png") },
-  ];
-
   const renderTeamLogo = ({ item }) => (
+    <View style={styles.BoxContaier}>
     <View style={styles.logoContainer}>
-      <Image source={item.logo} style={styles.logo} />
-      <Text style={styles.teamName}>{item.name}</Text>
-    </View>
+    <Image
+      source={{ uri: item.logoUrl }}
+      style={[styles.logo, { borderRadius: 10 }]}
+    />
+    <Text>{item.name}</Text>
+  </View>
+  </View>
   );
 
   return (
-    <View style={styles.container}>
-      <Carousel
+<View style={styles.container}>
+<Carousel
         data={teams}
         renderItem={renderTeamLogo}
         sliderWidth={300}
-        itemWidth={250}
-        autoplay={true}
-        autoplayInterval={1500}
+        itemWidth={100}
         loop={true}
+        autoplay={true}
+        scrollAnimationDuration={1000}
       />
 
-      <Text style={styles.title}>Iniciar sesión</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Correo electrónico"
-        onChangeText={(text) => setEmail(text)}
-        value={email}
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Contraseña"
-        secureTextEntry={true}
-        onChangeText={(text) => setPassword(text)}
-        value={password}
-      />
-      <Button title="Iniciar sesión" onPress={() => handleLogin()} />
-      {error && <Text style={styles.errorText}>{error}</Text>}
-      <Text style={styles.footerText}>
-        ¿No tienes una cuenta?{" "}
-        <Text style={styles.link} onPress={() => handleSignUp()}>
-          Regístrate
-        </Text>
-      </Text>
-    </View>
+  <Text style={styles.title}>¡Inicia sesión y apuesta por tu equipo!</Text>
+
+  <TextInput
+    style={styles.input}
+    placeholder="Correo electrónico"
+    onChangeText={(text) => setEmail(text)}
+    value={email}
+    keyboardType="email-address"
+  />
+
+  <TextInput
+    style={styles.input}
+    placeholder="Contraseña"
+    secureTextEntry={true}
+    onChangeText={(text) => setPassword(text)}
+    value={password}
+  />
+
+  <Button title="Iniciar sesión" onPress={() => handleLogin()} />
+
+  {error && <Text style={styles.errorText}>{error}</Text>}
+
+  <Text style={styles.footerText}>
+    ¿Aún no tienes cuenta?{" "}
+    <Text style={styles.link} onPress={() => handleSignUp()}>
+      Regístrate
+    </Text>
+  </Text>
+</View>
   );
 };
 
@@ -139,27 +140,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 20,
+    backgroundColor: "#fff",
   },
-  logoContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 20,
-  },
-  teamName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginTop: 10,
-  },
+
   title: {
     fontSize: 32,
     fontWeight: "bold",
     marginBottom: 20,
+    textAlign: "center",
+    color: "#0047ab",
+    textShadowColor: "#a0a0a0",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
+
   input: {
     height: 40,
     width: "100%",
@@ -167,18 +161,55 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     marginBottom: 10,
     paddingHorizontal: 10,
+    backgroundColor: "#fff",
+    borderRadius: 10,
   },
-  footerText: {
-    marginTop: 20,
-  },
-  link: {
-    color: "blue",
-  },
+
   errorText: {
-    color: "red",
+    color: "#f00",
     marginTop: 10,
     textAlign: "center",
   },
+
+  footerText: {
+    marginTop: 20,
+    color: "#333",
+    fontSize: 16,
+  },
+
+  link: {
+    color: "#0047ab",
+    textDecorationLine: "underline",
+  },
+  logoContainer: {
+    width: "80%",
+    aspectRatio: 1,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+    marginVertical: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    alignSelf: "center",
+  },
+  logo: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+    resizeMode: "contain",
+  },
+
+  BoxContaier: {
+marginTop:50,
+  },
 });
+
 
 export default Account;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { auth, db } from "./firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, listCollections } from "firebase/firestore";
 import { Table, Row, Rows } from "react-native-table-component";
 
 const Match = () => {
@@ -11,108 +11,73 @@ const Match = () => {
   const [realmadridMatch, setRealmadridMatch] = useState(null);
   const [apuestas, setApuestas] = useState([]);
 
+  const fetchJornada = async () => {
+    // Obtener la fecha y hora actual a través de la API de worldtimeapi.org
+    const response = await fetch("http://worldtimeapi.org/api/ip");
+    const data = await response.json();
+    const fechaActual = new Date(data.datetime);
+    const fechaActualStr = `${fechaActual.getFullYear()}-${String(
+      fechaActual.getMonth() + 1
+    ).padStart(2, "0")}-${String(fechaActual.getDate()).padStart(2, "0")}`;
 
-    const fetchJornada = async () => {
-      // Obtener la fecha y hora actual a través de la API de worldtimeapi.org
-      const response = await fetch("http://worldtimeapi.org/api/ip");
-      const data = await response.json();
-      const fechaActual = new Date(data.datetime);
-      const fechaActualStr = `${fechaActual.getFullYear()}-${String(
-        fechaActual.getMonth() + 1
-      ).padStart(2, "0")}-${String(fechaActual.getDate()).padStart(2, "0")}`;
+    // Obtener la jornada correspondiente a la fecha actual a través de la API de football-data.org
+    const responseJornada = await fetch(
+      `https://api.football-data.org/v2/competitions/2014/matches?dateFrom=${fechaActualStr}&dateTo=${fechaActualStr}`,
+      {
+        headers: { "X-Auth-Token": "c127303480ab4eec989ae6e83f52ab57" },
+      }
+    );
+    const dataJornada = await responseJornada.json();
+    setJornada(dataJornada.matches[0].matchday);
 
-      // Obtener la jornada correspondiente a la fecha actual a través de la API de football-data.org
-      const responseJornada = await fetch(
-        `https://api.football-data.org/v2/competitions/2014/matches?dateFrom=${fechaActualStr}&dateTo=${fechaActualStr}`,
-        {
-          headers: { "X-Auth-Token": "c127303480ab4eec989ae6e83f52ab57" },
-        }
-      );
-      const dataJornada = await responseJornada.json();
-      setJornada(dataJornada.matches[0].matchday);
+    //console.log(dataJornada.matches[0].matchday)
 
+    fetchApuestas(jornada, dataJornada);
+  };
 
-      //Muestra Datos Pantallas
-      const responsePartidos = await fetch(
-        `https://api.football-data.org/v2/competitions/2014/matches?matchday=${jornada}`,
-        {
-          headers: { "X-Auth-Token": "c127303480ab4eec989ae6e83f52ab57" },
-        }
-      );
-      const dataPartidos = await responsePartidos.json();
+const fetchApuestas = async (jornada, DataJornada) => {
+  // Filtrar los partidos del Valencia CF en la jornada correspondiente
+  const partidosValencia = DataJornada.matches.filter(
+    (partido) =>
+      partido.matchday === jornada &&
+      (partido.homeTeam.name === "Valencia CF" ||
+        partido.awayTeam.name === "Valencia CF")
+  );
+  console.log(jornada)
 
-      const partido1 = dataPartidos.matches.find(
-        (partido) =>
-          partido.homeTeam.name === "Valencia CF" ||
-          partido.awayTeam.name === "Valencia CF"
-      );
+  console.log("Partidos del Valencia CF:", partidosValencia);
 
-      setValenciaMatch(partido1);
+  const querySnapshot = await getDocs(collection(db, "Apuestas"));
+  const apuestasDocs = querySnapshot.docs.map((doc) => doc.data());
+  setApuestas(apuestasDocs);
 
-      const responsePartidos2 = await fetch(
-        `https://api.football-data.org/v2/competitions/2014/matches?matchday=${jornada}`,
-        {
-          headers: { "X-Auth-Token": "c127303480ab4eec989ae6e83f52ab57" },
-        }
-      );
-      const dataPartidos2 = await responsePartidos2.json();
-
-      const partido2 = dataPartidos2.matches.find((partido) => {
-        if (
-          (partido.homeTeam.name === "Real Madrid CF" &&
-            partido.awayTeam.name === "Valencia CF") ||
-          (partido.homeTeam.name === "Valencia CF" &&
-            partido.awayTeam.name === "Real Madrid CF")
-        ) {
-          return (
-            partido.homeTeam.name === "FC Barcelona" ||
-            partido.awayTeam.name === "FC Barcelona"
-          );
-        } else {
-        }
-        return (
-          partido.homeTeam.name === "Real Madrid CF" ||
-          partido.awayTeam.name === "Real Madrid CF"
-        );
+  if (apuestasDocs.length === 0) {
+    alert(`La Porra se esta actualizando, espere a que acabe el ultimo partido de la Jornda-${jornada}`);
+  } else {
+    console.log(`Documentos en la colección 'Apuestas':`);
+    querySnapshot.forEach((doc) => {
+      console.log(doc.id, " => ", doc.data());
+      const subCollection = collection(doc.ref, `Jornada-${jornada}`);
+      getDocs(subCollection).then((subCollectionSnapshot) => {
+        subCollectionSnapshot.forEach((subDoc) => {
+          if (subDoc.data().homeTeam.name === "Valencia CF" || subDoc.data().awayTeam.name === "Valencia CF") {
+            console.log(subDoc.id, " => ", subDoc.data());
+          }
+        });
       });
+    });
+  }
+};
 
-      setRealmadridMatch(partido2);
-
-    //Recogida Datos BBDD
-    const jornadaDocRef = doc(db, "Apuestas", `Jornada-${jornada}`);
-      const partidoRef = collection (
-        jornadaDocRef,`${partido1.homeTeam.name}-${partido1.awayTeam.name}`
-      );
-  
-        const userApuestaRef = doc(partidoRef,users.map((item)=> [
-            item.uid
-            
-        ]) )
-
-        getDoc(userApuestaRef).then((doc) => {
-            if (doc.exists()) {
-              const data = doc.data();
-              setApuestas([data]);
-            } else {
-              console.log("No such document!");
-              setApuestas([]);
-            }
-          });
-    };
-
-
- 
-    const fetchUsers = async () => {
-      const querySnapshot = await getDocs(collection(db, "Usuarios"));
-      const users = querySnapshot.docs.map((doc) => doc.data());
-      setUsers(users);
-    };
-    fetchUsers();
-
+  const fetchUsers = async () => {
+    const querySnapshot = await getDocs(collection(db, "Usuarios"));
+    const users = querySnapshot.docs.map((doc) => doc.data());
+    setUsers(users);
+  };
 
   const tableData = users.map((item) => [
     item.correo?.split("@")[0],
-    apuestas,
+    "No hay resultado",
     "No hay resultado",
   ]);
 
@@ -145,8 +110,8 @@ const Match = () => {
         </Table>
       </View>
       <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
-      <Text style={styles.refreshText}>Refrescar</Text>
-    </TouchableOpacity>
+        <Text style={styles.refreshText}>Refrescar</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -188,16 +153,16 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   refreshButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: "#2196F3",
     borderRadius: 10,
     padding: 10,
     marginBottom: 10,
   },
   refreshText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
   },
 });
 

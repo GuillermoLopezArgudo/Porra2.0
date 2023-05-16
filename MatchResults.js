@@ -33,18 +33,20 @@ const MatchResults = () => {
   const [valenciaResult, setValenciaResult] = useState("");
   const [realMadridResult, setRealMadridResult] = useState("");
   const [barcelonaResult, setBarcelonaResult] = useState({});
-  const [jornada, setJornada] = useState(null);
-  const [showBarcelona, setShowBarcelona] = useState(false);
-  const [showRealMadrid, setShowRealMadrid] = useState(true);
+  const [jornada, setJornada] = useState("null");
+  const [showBarcelona, setShowBarcelona] = useState(true);
+  const [showRealMadrid, setShowRealMadrid] = useState(false);
+  const moment = require("moment");
+  const today = moment().format("YYYY-MM-DD");
 
   //Partidos y jornadas traidas de la api (https://api.football-data.org/v2/)
   const API_KEY = "c127303480ab4eec989ae6e83f52ab57";
   const valenciaURL = `https://api.football-data.org/v2/teams/95/matches?status=SCHEDULED&competitions=2014`;
   const realMadridURL = `https://api.football-data.org/v2/teams/86/matches?status=SCHEDULED&competitions=2014`;
   const barcelonaURL = `https://api.football-data.org/v2/teams/81/matches?status=SCHEDULED&competitions=2014`;
-  const jornadaURL = `https://api.football-data.org/v2/competitions/2014/matches?matchday=38`;
+  const jornadaURL = `https://api.football-data.org/v2/competitions/2014/matches?dateFrom=${today}&dateTo=${today}`;
 
-  //Funcion useEffect funcion que trae de la API los datos necesarios para mostrarlos y tiene un condicional 
+  //Funcion useEffect funcion que trae de la API los datos necesarios para mostrarlos y tiene un condicional
   //el cual si juega Valencia vs Madrid se muestra el partido del Barcelona y se oculta el partido del Real Madrid
   useEffect(() => {
     Promise.all([
@@ -69,157 +71,186 @@ const MatchResults = () => {
         },
       }),
     ])
-      .then(([valenciaResponse, realMadridResponse,barcelonaResponse, jornadaResponse]) =>
-        Promise.all([
-          valenciaResponse.json(),
-          realMadridResponse.json(),
-          barcelonaResponse.json(),
-          jornadaResponse.json(),
-        ])
+      .then(
+        ([
+          valenciaResponse,
+          realMadridResponse,
+          barcelonaResponse,
+          jornadaResponse,
+        ]) =>
+          Promise.all([
+            valenciaResponse.json(),
+            realMadridResponse.json(),
+            barcelonaResponse.json(),
+            jornadaResponse.json(),
+          ])
       )
-      .then(([valenciaJson, realMadridJson,barcelonaJson, jornadaJson]) => {
+      .then(([valenciaJson, realMadridJson, barcelonaJson, jornadaJson]) => {
         if (
-          valenciaJson.matches[0].awayTeam.name === "Real Madrid" ||
-          valenciaJson.matches[0].homeTeam.name === "Real Madrid"
+          valenciaJson.matches[0].awayTeam.name === "Real Madrid CF" &&
+          valenciaJson.matches[0].homeTeam.name === "Valencia CF"||
+          valenciaJson.matches[0].awayTeam.name === "Valencia CF" &&
+          valenciaJson.matches[0].homeTeam.name === "Real Madrid CF"
         ) {
-          setValenciaMatch(valenciaJson.matches[1]);
-          setShowRealMadrid(true);
-          setShowBarcelona(false);
-        } else {
-          setValenciaMatch(valenciaJson.matches[0]);
-          setShowBarcelona(false);
-          setShowRealMadrid(true)
-        }
 
+          setShowRealMadrid(false);
+
+        } else {
+
+          setShowBarcelona(true);
+
+        }
+        setValenciaMatch(valenciaJson.matches[0]);
         setRealMadridMatch(realMadridJson.matches[0]);
-        setBarcelonaMatch(barcelonaJson.matches[0])
+        setBarcelonaMatch(barcelonaJson.matches[0]);
         setJornada(jornadaJson.matches[0].season);
         setLoading(false);
       })
       .catch((error) => console.error(error))
       .finally(() => setLoading(false));
   }, []);
-/*Funcion handleSaveResults:
+  /*Funcion handleSaveResults:
 Esta funcion se dedica a subir los datos a la BBDD (Firebase)
 Los sube de la forma (Coleccion:Apuestas),(Documento:Jornada),(Coleccion:Partido),(Documento:IdUser),(Campos: User, Resultado)
 */
   const handleSaveResults = async (match, result, jornada) => {
-
     const email = auth.currentUser?.email;
     const username = email?.split("@")[0];
 
-if(valenciaMatch.matchday === realMadridMatch.matchday && valenciaMatch.matchday === barcelonaMatch.matchday){
-    const apuesta = {
-      resultado: result,
-      Usuario: username,
+    if (
+      valenciaMatch.matchday === realMadridMatch.matchday ||
+      valenciaMatch.matchday === barcelonaMatch.matchday
+    ) {
+      const apuesta = {
+        resultado: result,
+        Usuario: username,
+      };
 
-    };
-  
-    const jornadaDocRef = doc(db, "Apuestas",`Jornada-${jornada.currentMatchday}`)
-    const Partido= collection(jornadaDocRef,`${match.homeTeam.name}-${match.awayTeam.name}`)
-    const userApuestaRef = doc(Partido, auth.currentUser.uid);
-    try {
-      const partidoDoc = await getDoc(userApuestaRef);
-      if(partidoDoc.exists()){
-        alert("Ya has puesto el resultado");
-      }else{
-      
-      await setDoc(doc(Partido,`${auth.currentUser.uid}`),apuesta,{merge: true});
-      alert("Resultado guardado exitosamente");
+      if (valenciaMatch.matchday === jornada.matchday) {
+        const jornadaDocRef = doc(
+          db,
+          "Apuestas",
+          `Jornada-${jornada.currentMatchday}`
+        );
+        const Partido = collection(
+          jornadaDocRef,
+          `${match.homeTeam.name}-${match.awayTeam.name}`
+        );
+        const userApuestaRef = doc(Partido, auth.currentUser.uid);
+        try {
+          const partidoDoc = await getDoc(userApuestaRef);
+          if (partidoDoc.exists()) {
+            alert("Ya has puesto el resultado");
+          } else {
+            await setDoc(doc(Partido, `${auth.currentUser.uid}`), apuesta, {
+              merge: true,
+            });
+            alert("Resultado guardado exitosamente");
+          }
+        } catch (error) {
+          alert(`Hubo un error al guardar el resultado: ${error.message}`);
+        }
+      } else {
+        alert(jornada.currentMatchday)
+        alert(
+          "Base Datos actualizandose... , Cuando acabe el ultimo partido de la Jornada podra apostar"
+        );
+      }
+    } else {
+      alert("Aún hay un partido cursando en otra jornada.");
     }
-    } catch (error) {
-      alert(`Hubo un error al guardar el resultado: ${error.message}`);
-    }
-  }else{
-    alert("Aún hay un partido cursando en otra jornada.");
-  }
   };
   return (
-    <ScrollView>
-    <View style={styles.container}>
-      {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
-      ) : (
-        <View>
-          <Text style={styles.title}>Próximos partidos</Text>
-          <View style={styles.card}>
-            <Text style={styles.subTitle}>Valencia</Text>
-            <Text style={styles.text}>Fecha: {valenciaMatch.utcDate}</Text>
-            <Text style={styles.text}>
-              Local: {valenciaMatch.homeTeam.name}
-            </Text>
-            <Text style={styles.text}>
-              Visitante: {valenciaMatch.awayTeam.name}
-            </Text>
-            <TextInput
-              style={styles.textInput}
-              value={valenciaResult}
-              onChangeText={(text) => setValenciaResult(text)}
-              placeholder="Ingrese el resultado"
-            />
-            <Button
-              title="Guardar resultado"
-              onPress={() => handleSaveResults(valenciaMatch, valenciaResult, jornada)}
-            />
-          </View>
-          {showRealMadrid ? (
-<>
-          <View style={styles.card}>
-            <Text style={styles.subTitle}>Real Madrid</Text>
-            <Text style={styles.text}>Fecha: {realMadridMatch.utcDate}</Text>
-            <Text style={styles.text}>
-              Local: {realMadridMatch.homeTeam.name}
-            </Text>
-            <Text style={styles.text}>
-              Visitante: {realMadridMatch.awayTeam.name}
-            </Text>
-            <TextInput
-              style={styles.textInput}
-              value={realMadridResult}
-              onChangeText={(text) => setRealMadridResult(text)}
-              placeholder="Ingrese el resultado"
-            />
-            <Button
-              title="Guardar resultado"
-              onPress={() =>
-                handleSaveResults(realMadridMatch, realMadridResult, jornada)
-              }
-            />
-          </View>
-          </>
-) : null}
-
-          {showBarcelona ? (
-<>
-          <View style={styles.card}>
-            <Text style={styles.subTitle}>Barcelona</Text>
-            <Text style={styles.text}>Fecha: {barcelonaMatch.utcDate}</Text>
-            <Text style={styles.text}>
-              Local: {barcelonaMatch.homeTeam.name}
-            </Text>
-            <Text style={styles.text}>
-              Visitante: {barcelonaMatch.awayTeam.name}
-            </Text>
-            <TextInput
-              style={styles.textInput}
-              value={barcelonaResult}
-              onChangeText={(text) => setBarcelonaResult(text)}
-              placeholder="Ingrese el resultado"
-            />
-            <Button
-              title="Guardar resultado"
-              onPress={() =>
-                handleSaveResults(barcelonaMatch, barcelonaResult, jornada)
-              }
-            />
-          </View>
-          </>
-) : null}
+<ScrollView>
+  <View style={styles.container}>
+    {loading ? (
+      <ActivityIndicator size="large" color="#0000ff" />
+    ) : (
+      <View>
+        <Text style={styles.title}>Próximos partidos</Text>
+        <View style={styles.card}>
+          <Text style={styles.subTitle}>Valencia</Text>
+          <Text style={styles.text}>Fecha: {valenciaMatch.utcDate}</Text>
+          <Text style={styles.text}>
+            Local: {valenciaMatch.homeTeam.name}
+          </Text>
+          <Text style={styles.text}>
+            Visitante: {valenciaMatch.awayTeam.name}
+          </Text>
+          <TextInput
+            style={styles.textInput}
+            value={valenciaResult}
+            onChangeText={(text) => setValenciaResult(text)}
+            placeholder="Ingrese el resultado"
+          />
+          <Button
+            title="Apostar"
+            onPress={() =>
+              handleSaveResults(valenciaMatch, valenciaResult, jornada)
+            }
+          />
         </View>
-        
-      )}
-    </View>
-    </ScrollView>
+        {showRealMadrid ? (
+          <>
+            <View style={styles.card}>
+              <Text style={styles.subTitle}>Real Madrid</Text>
+              <Text style={styles.text}>
+                Fecha: {realMadridMatch.utcDate}
+              </Text>
+              <Text style={styles.text}>
+                Local: {realMadridMatch.homeTeam.name}
+              </Text>
+              <Text style={styles.text}>
+                Visitante: {realMadridMatch.awayTeam.name}
+              </Text>
+              <TextInput
+                style={styles.textInput}
+                value={realMadridResult}
+                onChangeText={(text) => setRealMadridResult(text)}
+                placeholder="Ingrese el resultado"
+              />
+              <Button
+                title="Apostar"
+                onPress={() =>
+                  handleSaveResults(realMadridMatch, realMadridResult, jornada)
+                }
+              />
+            </View>
+          </>
+        ) : null}
+
+    {showBarcelona ? (
+      <>
+        <View style={styles.card}>
+          <Text style={styles.subTitle}>Barcelona</Text>
+          <Text style={styles.text}>
+            Fecha: {barcelonaMatch.utcDate}
+          </Text>
+          <Text style={styles.text}>
+            Local: {barcelonaMatch.homeTeam.name}
+          </Text>
+          <Text style={styles.text}>
+            Visitante: {barcelonaMatch.awayTeam.name}
+          </Text>
+          <TextInput
+            style={styles.textInput}
+            value={barcelonaResult}
+            onChangeText={(text) => setBarcelonaResult(text)}
+            placeholder="Ingrese el resultado"
+          />
+          <Button
+            title="Apostar"
+            onPress={() =>
+              handleSaveResults(barcelonaMatch, barcelonaResult, jornada)
+            }
+          />
+        </View>
+      </>
+    ) : null}
+  </View>
+)}
+  </View>
+</ScrollView>
   );
 };
 
@@ -258,6 +289,22 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginTop: 10,
+  },
+  button: {
+    backgroundColor: "#008000",
+    borderRadius: 5,
+    padding: 10,
+    marginTop: 20,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  inputError: {
+    borderWidth: 1,
+    borderColor: "red",
   },
 });
 
